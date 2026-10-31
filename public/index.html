@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Nexus Enterprise Operations Platform</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; }
+    .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; }
+  </style>
+</head>
+<body class="bg-slate-900 text-slate-100 min-h-screen">
+
+  <header class="border-b border-slate-800 bg-slate-950 px-6 py-4 flex justify-between items-center">
+    <div class="flex items-center space-x-3">
+      <div class="w-8 h-8 rounded bg-blue-600 flex items-center justify-center font-bold text-white tracking-wider">NX</div>
+      <div>
+        <h1 class="text-lg font-semibold tracking-wide text-white">NEXUS OPERATIONS PLATFORM</h1>
+        <p class="text-xs text-slate-400">Enterprise Resource & Infrastructure Gateway v3.0</p>
+      </div>
+    </div>
+    <div id="userProfileBadge" class="hidden flex items-center space-x-4">
+      <div class="text-right">
+        <div id="badgeUserName" class="text-sm font-medium text-slate-200"></div>
+        <div id="badgeUserRole" class="text-xs text-blue-400 uppercase tracking-wider mono"></div>
+      </div>
+      <button onclick="logout()" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs rounded border border-slate-700">Sign Out</button>
+    </div>
+  </header>
+
+  <main id="authView" class="max-w-md mx-auto mt-20 p-6 bg-slate-950 border border-slate-800 rounded-lg shadow-2xl">
+    <h2 id="authTitle" class="text-xl font-semibold mb-1 text-white">Employee Sign In</h2>
+    <p id="authDesc" class="text-xs text-slate-400 mb-6">Authenticate using corporate single sign-on credentials.</p>
+    <div id="authAlert" class="hidden mb-4 p-3 border text-xs rounded"></div>
+    
+    <form id="loginForm" onsubmit="handleLogin(event)" class="space-y-4">
+      <div>
+        <label class="block text-xs font-medium text-slate-300 mb-1">Username or Email</label>
+        <input type="text" id="loginId" required class="w-full bg-slate-900 border border-slate-700 rounded px-3 py-2 text-sm text-slate-100 focus:outline-none focus:border-blue-500">
+      </div>
+      <div>
+        <label class="block text-xs font-medium text-slate-300 mb-1">Account Password</label>
+        <input type="password" id="loginPassword" required class="w-full bg-slate-900 border border-slate-700 rounded px-3 py-2 text-sm text-slate-100 focus:outline-none focus:border-blue-500">
+      </div>
+      <button type="submit" class="w-full bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium py-2 rounded transition">Authenticate Session</button>
+      <div class="text-center mt-4">
+        <button type="button" onclick="toggleAuthMode('register')" class="text-xs text-slate-400 hover:text-blue-400 hover:underline transition">New Employee? Register Here</button>
+      </div>
+    </form>
+
+    <form id="registerForm" onsubmit="handleRegister(event)" class="hidden space-y-4">
+      <div>
+        <label class="block text-xs font-medium text-slate-300 mb-1">Full Name</label>
+        <input type="text" id="regName" required class="w-full bg-slate-900 border border-slate-700 rounded px-3 py-2 text-sm text-slate-100 focus:outline-none focus:border-blue-500">
+      </div>
+      <div>
+        <label class="block text-xs font-medium text-slate-300 mb-1">Username</label>
+        <input type="text" id="regUsername" required class="w-full bg-slate-900 border border-slate-700 rounded px-3 py-2 text-sm text-slate-100 focus:outline-none focus:border-blue-500">
+      </div>
+      <div>
+        <label class="block text-xs font-medium text-slate-300 mb-1">Email Address</label>
+        <input type="email" id="regEmail" required class="w-full bg-slate-900 border border-slate-700 rounded px-3 py-2 text-sm text-slate-100 focus:outline-none focus:border-blue-500">
+      </div>
+      <div>
+        <label class="block text-xs font-medium text-slate-300 mb-1">Password</label>
+        <input type="password" id="regPassword" required class="w-full bg-slate-900 border border-slate-700 rounded px-3 py-2 text-sm text-slate-100 focus:outline-none focus:border-blue-500">
+      </div>
+      <div>
+        <label class="block text-xs font-medium text-slate-300 mb-1">Confirm Password</label>
+        <input type="password" id="regConfirm" required class="w-full bg-slate-900 border border-slate-700 rounded px-3 py-2 text-sm text-slate-100 focus:outline-none focus:border-blue-500">
+      </div>
+      <button type="submit" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-medium py-2 rounded transition">Provision Account</button>
+      <div class="text-center mt-4">
+        <button type="button" onclick="toggleAuthMode('login')" class="text-xs text-slate-400 hover:text-blue-400 hover:underline transition">Already registered? Sign In</button>
+      </div>
+    </form>
+  </main>
+
+  <main id="forbiddenScreen" class="hidden max-w-2xl mx-auto mt-24 p-8 bg-slate-950 border border-red-900/60 rounded-xl shadow-2xl text-center">
+    <div class="w-16 h-16 mx-auto rounded-full bg-red-950/80 border border-red-800 flex items-center justify-center text-red-500 mb-4">
+      <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+    </div>
+    <h2 class="text-2xl font-bold text-white mb-2">403 Forbidden — Access Denied</h2>
+    <p class="text-sm text-slate-400 mb-4">Your current security token lacks administrative clearance.</p>
+    <button onclick="navigateToTab('procurement')" class="px-5 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs rounded border border-slate-700">Return to Department Portal</button>
+  </main>
+
+  <main id="dashboardView" class="hidden max-w-7xl mx-auto p-6">
+    <div class="flex border-b border-slate-800 mb-6 space-x-8 text-sm">
+      <button onclick="navigateToTab('procurement')" id="tabBtnProcurement" class="py-3 border-b-2 border-blue-500 text-blue-400 font-medium">Procurement & Orders</button>
+      <button onclick="navigateToTab('diagnostic')" id="tabBtnDiagnostic" class="py-3 border-b-2 border-transparent text-slate-400 hover:text-slate-200">Network Diagnostic Utility</button>
+      <button onclick="navigateToTab('admin')" id="tabBtnAdmin" class="hidden py-3 border-b-2 border-transparent text-red-400 hover:text-red-300 font-semibold flex items-center space-x-1.5">
+        <span>admin Control</span>
+      </button>
+    </div>
+
+    <section id="tabProcurement" class="space-y-6">
+      <div class="bg-slate-950 border border-slate-800 rounded-lg p-5">
+        <h3 class="text-base font-semibold text-white mb-1">My Requisitions</h3>
+        <p class="text-xs text-slate-400 mb-4">Authorized procurement files assigned to your profile.</p>
+        <table class="w-full text-left text-xs border-collapse">
+          <thead>
+            <tr class="border-b border-slate-800 text-slate-400">
+              <th class="py-2.5 px-3">Order Ref</th>
+              <th class="py-2.5 px-3">Contract Title</th>
+              <th class="py-2.5 px-3">Vendor</th>
+              <th class="py-2.5 px-3">Status</th>
+              <th class="py-2.5 px-3 text-right">Action</th>
+            </tr>
+          </thead>
+          <tbody id="myOrdersTableBody">
+            <!-- Rendered via JS -->
+          </tbody>
+        </table>
+      </div>
+
+      <div id="orderDetailsCard" class="hidden bg-slate-950 border border-slate-800 rounded-lg p-5">
+        <h4 class="text-lg font-semibold text-white" id="detailTitle"></h4>
+        <div id="detailErrorMsg" class="hidden text-red-400 text-sm mt-2"></div>
+        <div id="detailContentWrapper" class="grid grid-cols-2 md:grid-cols-4 gap-4 text-xs my-4">
+          <div><div class="text-slate-400">Vendor</div><div class="font-medium text-slate-200 mt-1" id="detailVendor"></div></div>
+          <div><div class="text-slate-400">Amount</div><div class="font-medium text-slate-200 mt-1 mono" id="detailAmount"></div></div>
+          <div><div class="text-slate-400">Destination</div><div class="font-medium text-slate-200 mt-1" id="detailDestination"></div></div>
+          <div><div class="text-slate-400">Owner Key</div><div class="font-medium text-slate-200 mt-1 mono text-blue-400" id="detailOwnerId"></div></div>
+        </div>
+        <div id="detailNotesWrapper" class="p-3 bg-slate-900 border border-slate-800 rounded text-xs">
+          <div class="text-slate-400 font-medium mb-1">Confidential Notes:</div>
+          <div class="text-slate-300 mono" id="detailNotes"></div>
+        </div>
+      </div>
+    </section>
+
+    <section id="tabDiagnostic" class="hidden space-y-6">
+      <div class="bg-slate-950 border border-slate-800 rounded-lg p-5">
+        <h3 class="text-base font-semibold text-white mb-1">Host Connectivity Diagnostic</h3>
+        <p class="text-xs text-slate-400 mb-4">Run ICMP ping probes directly across internal gateway infrastructure.</p>
+        <form onsubmit="runDiagnostic(event)" class="flex space-x-3 my-4">
+          <input type="text" id="targetHostInput" required value="127.0.0.1" class="flex-1 bg-slate-900 border border-slate-700 rounded px-3 py-2 text-sm text-slate-100 mono focus:outline-none focus:border-blue-500">
+          <button type="submit" class="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium rounded">Execute Probe</button>
+        </form>
+        <pre id="diagnosticConsole" class="mono text-xs text-emerald-400 bg-black p-4 rounded border border-slate-800">Awaiting command execution...</pre>
+      </div>
+    </section>
+
+    <section id="tabAdmin" class="hidden space-y-6">
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div class="p-4 bg-slate-950 border border-slate-800 rounded-lg">
+          <div class="text-xs text-slate-400">Total Enterprise Liquidity</div>
+          <div class="text-xl font-bold text-white mono mt-1" id="adminLiquidity">...</div>
+        </div>
+        <div class="p-4 bg-slate-950 border border-slate-800 rounded-lg">
+          <div class="text-xs text-slate-400">Active Offshore Capital Reserve</div>
+          <div class="text-xl font-bold text-emerald-400 mono mt-1" id="adminOffshore">...</div>
+        </div>
+        <div class="p-4 bg-slate-950 border border-slate-800 rounded-lg">
+          <div class="text-xs text-slate-400">Privileged Sessions Active</div>
+          <div class="text-xl font-bold text-red-400 mono mt-1" id="adminSessions">...</div>
+        </div>
+      </div>
+      <div class="bg-slate-950 border border-red-900/40 rounded-lg p-5">
+        <div class="flex justify-between items-center mb-4">
+          <div>
+            <h3 class="text-base font-bold text-white flex items-center space-x-2">
+              <span>Master Enterprise Identity Directory</span>
+              <span class="px-2 py-0.5 text-[10px] bg-red-950 text-red-300 border border-red-800 rounded">RESTRICTED</span>
+            </h3>
+          </div>
+          <button onclick="fetchAdminData()" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs rounded border border-slate-700">Sync Database</button>
+        </div>
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-xs border-collapse">
+            <thead>
+              <tr class="border-b border-slate-800 text-slate-400">
+                <th class="py-2.5 px-3">UID</th>
+                <th class="py-2.5 px-3">Username</th>
+                <th class="py-2.5 px-3">Password Record</th>
+                <th class="py-2.5 px-3">Clearance</th>
+                <th class="py-2.5 px-3">Role</th>
+              </tr>
+            </thead>
+            <tbody id="adminUserTableBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    function getCookie(name) {
+      const match = document.cookie.match(new RegExp('(^| )' + name + '=([^;]+)'));
+      return match ? decodeURIComponent(match[2]) : null;
+    }
+
+    function toggleAuthMode(mode) {
+      document.getElementById('authAlert').classList.add('hidden');
+      if (mode === 'register') {
+        document.getElementById('loginForm').classList.add('hidden');
+        document.getElementById('registerForm').classList.remove('hidden');
+        document.getElementById('authTitle').innerText = 'New Employee Registration';
+        document.getElementById('authDesc').innerText = 'Provision a new corporate account.';
+      } else {
+        document.getElementById('registerForm').classList.add('hidden');
+        document.getElementById('loginForm').classList.remove('hidden');
+        document.getElementById('authTitle').innerText = 'Employee Sign In';
+        document.getElementById('authDesc').innerText = 'Authenticate using corporate single sign-on credentials.';
+      }
+    }
+
+    function showAlert(msg, type) {
+      const alertBox = document.getElementById('authAlert');
+      alertBox.innerText = msg;
+      alertBox.classList.remove('hidden', 'bg-red-950/60', 'border-red-800', 'text-red-300', 'bg-emerald-950/60', 'border-emerald-800', 'text-emerald-300');
+      if (type === 'error') alertBox.classList.add('bg-red-950/60', 'border-red-800', 'text-red-300');
+      else alertBox.classList.add('bg-emerald-950/60', 'border-emerald-800', 'text-emerald-300');
+    }
+
+    async function handleRegister(e) {
+      e.preventDefault();
+      const fn = document.getElementById('regName').value;
+      const un = document.getElementById('regUsername').value;
+      const em = document.getElementById('regEmail').value;
+      const pw = document.getElementById('regPassword').value;
+      const cp = document.getElementById('regConfirm').value;
+
+      if (pw !== cp) return showAlert("Passwords do not match.", "error");
+
+      const res = await fetch('/api/v1/auth/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ full_name: fn, username: un, email: em, password: pw })
+      });
+      const data = await res.json();
+      if (res.ok) {
+        showAlert("Account created successfully. You can now log in.", "success");
+        document.getElementById('registerForm').reset();
+        setTimeout(() => toggleAuthMode('login'), 2000);
+      } else showAlert(data.message, "error");
+    }
+
+    async function handleLogin(e) {
+      e.preventDefault();
+      const res = await fetch('/api/v1/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          loginId: document.getElementById('loginId').value,
+          password: document.getElementById('loginPassword').value
+        })
+      });
+      const data = await res.json();
+      if (res.ok) setupSession();
+      else showAlert(data.message, "error");
+    }
+
+    function setupSession() {
+      const role = getCookie('nexus_role');
+      const user = getCookie('nexus_user');
+
+      document.getElementById('authView').classList.add('hidden');
+      document.getElementById('userProfileBadge').classList.remove('hidden');
+      document.getElementById('badgeUserName').innerText = user || 'Operator';
+      document.getElementById('badgeUserRole').innerText = `ROLE: ${role || 'operator'}`;
+
+      const adminTabBtn = document.getElementById('tabBtnAdmin');
+      const tabAdmin = document.getElementById('tabAdmin');
+
+      if (role === 'admin') {
+        if(adminTabBtn) adminTabBtn.classList.remove('hidden');
+      } else {
+        if(adminTabBtn) adminTabBtn.remove(); 
+        if(tabAdmin) tabAdmin.remove(); 
+      }
+
+      if (window.location.pathname === '/admin') {
+        if (role === 'admin') {
+          document.getElementById('dashboardView').classList.remove('hidden');
+          navigateToTab('admin');
+        } else {
+          document.getElementById('dashboardView').classList.add('hidden');
+          document.getElementById('forbiddenScreen').classList.remove('hidden');
+        }
+      } else {
+        document.getElementById('forbiddenScreen').classList.add('hidden');
+        document.getElementById('dashboardView').classList.remove('hidden');
+        navigateToTab('procurement');
+      }
+    }
+
+    function logout() {
+      document.cookie = "nexus_session=; Path=/; Expires=Thu, 01 Jan 1970 00:00:01 GMT;";
+      document.cookie = "nexus_role=; Path=/; Expires=Thu, 01 Jan 1970 00:00:01 GMT;";
+      document.cookie = "nexus_user=; Path=/; Expires=Thu, 01 Jan 1970 00:00:01 GMT;";
+      window.location.href = '/';
+    }
+
+    function navigateToTab(tab) {
+      document.getElementById('forbiddenScreen').classList.add('hidden');
+      document.getElementById('dashboardView').classList.remove('hidden');
+
+      ['tabProcurement', 'tabDiagnostic', 'tabAdmin'].forEach(t => {
+        const el = document.getElementById(t);
+        if(el) el.classList.add('hidden');
+      });
+      ['tabBtnProcurement', 'tabBtnDiagnostic', 'tabBtnAdmin'].forEach(b => {
+        const el = document.getElementById(b);
+        if(el) el.className = "py-3 border-b-2 border-transparent text-slate-400 hover:text-slate-200 font-medium";
+      });
+
+      if (tab === 'procurement') {
+        const el = document.getElementById('tabProcurement');
+        const btn = document.getElementById('tabBtnProcurement');
+        if(el) el.classList.remove('hidden');
+        if(btn) btn.className = "py-3 border-b-2 border-blue-500 text-blue-400 font-medium";
+        loadMyOrders();
+      } else if (tab === 'diagnostic') {
+        const el = document.getElementById('tabDiagnostic');
+        const btn = document.getElementById('tabBtnDiagnostic');
+        if(el) el.classList.remove('hidden');
+        if(btn) btn.className = "py-3 border-b-2 border-blue-500 text-blue-400 font-medium";
+      } else if (tab === 'admin') {
+        const elTab = document.getElementById('tabAdmin');
+        const elBtn = document.getElementById('tabBtnAdmin');
+        if(elTab) elTab.classList.remove('hidden');
+        if(elBtn) elBtn.className = "py-3 border-b-2 border-red-500 text-red-400 font-semibold";
+        fetchAdminData();
+      }
+    }
+
+    async function loadMyOrders() {
+      const res = await fetch('/api/v1/procurement/orders');
+      const data = await res.json();
+      const tbody = document.getElementById('myOrdersTableBody');
+      
+      if (res.ok && data.data) {
+        const visibleOrders = data.data.filter(o => o.status !== 'System_Hidden');
+        if (visibleOrders.length > 0) {
+          tbody.innerHTML = visibleOrders.map(o => `
+            <tr class="border-b border-slate-900 hover:bg-slate-900/50">
+              <td class="py-3 px-3 mono text-blue-400">PO-${o.id}</td>
+              <td class="py-3 px-3 text-slate-200 font-medium">${o.contract_title}</td>
+              <td class="py-3 px-3 text-slate-400">${o.vendor}</td>
+              <td class="py-3 px-3"><span class="px-2 py-0.5 rounded bg-emerald-950 text-emerald-400 border border-emerald-800 text-[10px]">${o.status}</span></td>
+              <td class="py-3 px-3 text-right">
+                <button onclick="fetchOrderDetails(${o.id})" class="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded text-xs border border-slate-700">Details</button>
+              </td>
+            </tr>
+          `).join('');
+        } else {
+          tbody.innerHTML = `<tr><td colspan="5" class="py-8 text-center text-slate-500 text-sm italic">No active requisitions found under your profile.</td></tr>`;
+        }
+      }
+    }
+
+    async function fetchOrderDetails(id) {
+      if(!id) return;
+      const res = await fetch(`/api/v1/procurement/orders/${id}`);
+      const result = await res.json();
+      const card = document.getElementById('orderDetailsCard');
+      const err = document.getElementById('detailErrorMsg');
+      const wrap = document.getElementById('detailContentWrapper');
+      const notes = document.getElementById('detailNotesWrapper');
+
+      card.classList.remove('hidden');
+      
+      if (res.ok && result.data) {
+        const o = result.data;
+        document.getElementById('detailTitle').innerText = `PO-${o.id}: ${o.contract_title}`;
+        document.getElementById('detailVendor').innerText = o.vendor;
+        document.getElementById('detailAmount').innerText = `$${o.amount.toLocaleString()} USD`;
+        document.getElementById('detailDestination').innerText = o.delivery_destination;
+        document.getElementById('detailOwnerId').innerText = `UID-00${o.userId}`;
+        document.getElementById('detailNotes').innerText = o.confidential_notes;
+        
+        err.classList.add('hidden');
+        wrap.classList.remove('hidden');
+        notes.classList.remove('hidden');
+      } else {
+        document.getElementById('detailTitle').innerText = `Order Not Found`;
+        err.innerText = result.message || "Failed to retrieve data.";
+        err.classList.remove('hidden');
+        wrap.classList.add('hidden');
+        notes.classList.add('hidden');
+      }
+    }
+
+    async function runDiagnostic(e) {
+      e.preventDefault();
+      const host = document.getElementById('targetHostInput').value;
+      const c = document.getElementById('diagnosticConsole');
+      c.innerText = `Executing ICMP probe to ${host}...`;
+      const res = await fetch(`/api/v1/infrastructure/diagnostic?host=${encodeURIComponent(host)}`);
+      const data = await res.json();
+      c.innerText = data.output || data.message;
+    }
+
+    async function fetchAdminData() {
+      const res = await fetch('/api/v1/admin/management-data');
+      if (res.status === 403) return;
+
+      const data = await res.json();
+      if (res.ok) {
+        document.getElementById('adminLiquidity').innerText = data.executive_metrics.total_enterprise_liquidity;
+        document.getElementById('adminOffshore').innerText = data.executive_metrics.active_offshore_reserves;
+        document.getElementById('adminSessions').innerText = data.executive_metrics.active_privilege_sessions;
+
+        const tbody = document.getElementById('adminUserTableBody');
+        tbody.innerHTML = data.user_directory.map(u => `
+          <tr class="border-b border-slate-900 hover:bg-slate-900/60">
+            <td class="py-2.5 px-3 mono text-slate-400">#${u.id}</td>
+            <td class="py-2.5 px-3 font-semibold text-slate-200">${u.username}</td>
+            <td class="py-2.5 px-3 text-red-400 mono font-bold bg-red-950/20 px-2 rounded">${u.password}</td>
+            <td class="py-2.5 px-3 text-xs"><span class="px-2 py-0.5 rounded bg-slate-900 border border-slate-700 text-slate-300">${u.clearance_level}</span></td>
+            <td class="py-2.5 px-3"><span class="px-2 py-0.5 rounded text-[10px] font-bold uppercase ${u.role === 'admin' ? 'bg-red-950 text-red-300 border border-red-800' : 'bg-slate-800 text-slate-400'}">${u.role}</span></td>
+          </tr>
+        `).join('');
+      }
+    }
+
+    window.addEventListener('DOMContentLoaded', () => {
+      if (getCookie('nexus_user')) setupSession();
+    });
+  </script>
+</body>
+</html>
